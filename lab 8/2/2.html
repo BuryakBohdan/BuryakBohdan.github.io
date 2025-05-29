@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slider Carousel</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #f0f0f0;
+        }
+        .slider {
+            position: relative;
+            overflow: hidden;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 10px;
+            background: #fff;
+        }
+        .slides {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
+        }
+        .slide {
+            min-width: 100%;
+            height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: white;
+            background: #333;
+        }
+        .slider-arrows {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 24px;
+            color: #007bff;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            z-index: 1;
+        }
+        .prev {
+            left: 10px;
+        }
+        .next {
+            right: 10px;
+        }
+        .slider-dots {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 6px;
+        }
+        .slider-dots button {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            border: none;
+            background: #ccc;
+            cursor: pointer;
+        }
+        .slider-dots button.active {
+            background: #007bff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="slider" id="slider">
+    <div class="slides">
+        <div class="slide">Slide 1</div>
+        <div class="slide">Slide 2</div>
+        <div class="slide">Slide 3</div>
+        <div class="slide">Slide 4</div>
+    </div>
+    <button class="slider-arrows prev">❮</button>
+    <button class="slider-arrows next">❯</button>
+    <div class="slider-dots"></div>
+</div>
+
+<script>
+    function initSlider({
+                            selector = '#slider',
+                            autoplay = true,
+                            duration = 3000,
+                            showArrows = true,
+                            showDots = true,
+                        } = {}) {
+        const slider = document.querySelector(selector);
+        const slides = slider.querySelector('.slides');
+        const slideElements = slides.children;
+        const prevBtn = slider.querySelector('.prev');
+        const nextBtn = slider.querySelector('.next');
+        const dotsContainer = slider.querySelector('.slider-dots');
+
+        let index = 0;
+        let interval;
+        const total = slideElements.length;
+
+        function updateSlider() {
+            slides.style.transform = `translateX(-${index * 100}%)`;
+            [...dotsContainer.children].forEach((dot, i) => {
+                dot.classList.toggle('active', i === index);
+            });
+        }
+
+        function nextSlide() {
+            index = (index + 1) % total;
+            updateSlider();
+        }
+
+        function prevSlide() {
+            index = (index - 1 + total) % total;
+            updateSlider();
+        }
+
+        if (showArrows) {
+            prevBtn.addEventListener('click', prevSlide);
+            nextBtn.addEventListener('click', nextSlide);
+        } else {
+            prevBtn.style.display = 'none';
+            nextBtn.style.display = 'none';
+        }
+
+        if (showDots) {
+            for (let i = 0; i < total; i++) {
+                const dot = document.createElement('button');
+                dot.addEventListener('click', () => {
+                    index = i;
+                    updateSlider();
+                });
+                dotsContainer.appendChild(dot);
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') prevSlide();
+            if (e.key === 'ArrowRight') nextSlide();
+        });
+
+        if (autoplay) {
+            function startAutoplay() {
+                interval = setInterval(nextSlide, duration);
+            }
+            function stopAutoplay() {
+                clearInterval(interval);
+            }
+            slider.addEventListener('mouseenter', stopAutoplay);
+            slider.addEventListener('mouseleave', startAutoplay);
+            startAutoplay();
+        }
+
+        updateSlider();
+    }
+
+    initSlider({
+        autoplay: true,
+        duration: 4000,
+        showArrows: true,
+        showDots: true
+    });
+</script>
+
+</body>
+</html>

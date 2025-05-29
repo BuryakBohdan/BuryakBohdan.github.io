@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Kanban Board</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #f7f7f7;
+            margin: 20px;
+            display: flex;
+            justify-content: space-around;
+        }
+        .column {
+            width: 30%;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 0 10px #ccc;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            max-height: 80vh;
+        }
+        .column h2 {
+            text-align: center;
+            color: white;
+            padding: 10px;
+            border-radius: 6px 6px 0 0;
+            margin: -10px -10px 10px -10px;
+        }
+        .todo h2 { background: #2196F3; }
+        .working h2 { background: #FF9800; }
+        .done h2 { background: #4CAF50; }
+
+        .task {
+            padding: 10px;
+            margin: 5px 0;
+            background: #eee;
+            border-radius: 4px;
+            cursor: grab;
+        }
+
+        .task.dragging {
+            opacity: 0.5;
+        }
+
+        .tasks {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+    </style>
+</head>
+<body>
+<div class="column todo" ondragover="onDragOver(event)" ondrop="onDrop(event)">
+    <h2>To do</h2>
+    <div class="tasks" id="todo">
+        <div class="task" draggable="true">Item #1</div>
+        <div class="task" draggable="true">Item #2</div>
+        <div class="task" draggable="true">Item #3</div>
+    </div>
+</div>
+<div class="column working" ondragover="onDragOver(event)" ondrop="onDrop(event)">
+    <h2>Working</h2>
+    <div class="tasks" id="working">
+        <div class="task" draggable="true">Item #4</div>
+        <div class="task" draggable="true">Item #5</div>
+    </div>
+</div>
+<div class="column done" ondragover="onDragOver(event)" ondrop="onDrop(event)">
+    <h2>Done</h2>
+    <div class="tasks" id="done">
+        <div class="task" draggable="true">Item #6</div>
+        <div class="task" draggable="true">Item #7</div>
+    </div>
+</div>
+
+<script>
+    let draggedItem = null;
+
+    document.querySelectorAll('.task').forEach(task => {
+        task.addEventListener('dragstart', e => {
+            draggedItem = task;
+            setTimeout(() => task.classList.add('dragging'), 0);
+        });
+
+        task.addEventListener('dragend', e => {
+            task.classList.remove('dragging');
+            draggedItem = null;
+        });
+    });
+
+    function onDragOver(e) {
+        e.preventDefault();
+    }
+
+    function onDrop(e) {
+        e.preventDefault();
+        const column = e.currentTarget.querySelector('.tasks');
+        if (draggedItem && column) {
+            column.appendChild(draggedItem);
+        }
+    }
+</script>
+</body>
+</html>

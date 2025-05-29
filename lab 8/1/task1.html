@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Memory Pair Game</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; background-color: #eee; }
+    #controls, #gameBoard, #info { margin: 20px auto; }
+    #controls input, #controls select, #controls button { margin: 5px; padding: 5px; }
+    #gameBoard { display: grid; gap: 10px; justify-content: center; max-width: 600px; margin: auto; }
+    .card {
+      width: 60px;
+      height: 60px;
+      font-size: 2rem;
+      background-color: #fff;
+      border: 2px solid #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .card.flipped {
+      background-color: #f0f0f0;
+      cursor: default;
+    }
+  </style>
+</head>
+<body>
+<h1>Memory Pair Game</h1>
+<div id="controls">
+  <input id="player1" placeholder="Гравець 1" />
+  <input id="player2" placeholder="Гравець 2" />
+  <select id="boardSize">
+    <option value="4x4">4x4</option>
+    <option value="6x4">6x4</option>
+    <option value="6x6">6x6</option>
+  </select>
+  <select id="difficulty">
+    <option value="easy">Легко</option>
+    <option value="normal">Нормально</option>
+    <option value="hard">Важко</option>
+  </select>
+  <select id="rounds">
+    <option value="1">1</option>
+    <option value="3">3</option>
+    <option value="5">5</option>
+  </select>
+  <button id="startBtn">Розпочати гру</button>
+  <button id="resetSettings">Скинути налаштування</button>
+  <button id="restartBtn">Рестарт</button>
+</div>
+<div id="info">
+  <p>Ходи: <span id="moves">0</span> Час: <span id="timer">00:00</span></p>
+  <p><strong id="winner"></strong></p>
+</div>
+<div id="gameBoard"></div>
+<script>
+  const emojis = ['🍎', '🍌', '🍒', '🍇', '🍉', '🍍', '🥝', '🍓', '🍋', '🍑', '🥥', '🍈', '🥕', '🌽', '🍅', '🍆', '🥔', '🫐'];
+  const difficulties = { easy: 180, normal: 120, hard: 60 };
+
+  const pure = {
+    shuffle: arr => arr.slice().sort(() => Math.random() - 0.5),
+    createPairs: count => pure.shuffle(emojis).slice(0, count).flatMap(e => [e, e]),
+    generateBoard: (rows, cols, emojis) => {
+      const cards = pure.shuffle(emojis);
+      return cards.map((emoji, index) => ({ id: index, emoji, matched: false, flipped: false }));
+    }
+  };
+
+  let gameState = {
+    board: [], rows: 4, cols: 4, difficulty: 'easy', timer: null, countdown: 180,
+    moves: 0, flipped: [], players: [], currentPlayer: 0, scores: [],
+    totalRounds: 1, currentRound: 1
+  };
+
+  const elements = {
+    gameBoard: document.getElementById('gameBoard'),
+    timer: document.getElementById('timer'),
+    moves: document.getElementById('moves'),
+    winner: document.getElementById('winner'),
+    startBtn: document.getElementById('startBtn'),
+    resetSettings: document.getElementById('resetSettings'),
+    restartBtn: document.getElementById('restartBtn'),
+    player1: document.getElementById('player1'),
+    player2: document.getElementById('player2'),
+    rounds: document.getElementById('rounds'),
+    boardSize: document.getElementById('boardSize'),
+    difficulty: document.getElementById('difficulty')
+  };
+
+  function initGame() {
+    const [cols, rows] = elements.boardSize.value.split('x').map(Number);
+    const total = (rows * cols) / 2;
+
+    Object.assign(gameState, {
+      rows, cols,
+      difficulty: elements.difficulty.value,
+      countdown: difficulties[elements.difficulty.value],
+      totalRounds: +elements.rounds.value,
+      currentRound: 1,
+      players: [elements.player1.value || 'Гравець 1', elements.player2.value || 'Гравець 2'],
+      scores: [0, 0],
+      currentPlayer: 0,
+      moves: 0,
+      flipped: [],
+      board: pure.generateBoard(rows, cols, pure.createPairs(total))
+    });
+
+    updateGameInfo();
+    renderBoard();
+    startTimer();
+  }
+
+  function updateGameInfo() {
+    elements.moves.textContent = gameState.moves;
+    elements.timer.textContent = formatTime(gameState.countdown);
+    elements.winner.textContent = '';
+  }
+
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60).toString().padStart(2, '0');
+    const s = (sec % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  function startTimer() {
+    clearInterval(gameState.timer);
+    gameState.timer = setInterval(() => {
+      gameState.countdown--;
+      elements.timer.textContent = formatTime(gameState.countdown);
+      if (gameState.countdown <= 0) {
+        clearInterval(gameState.timer);
+        endGame(false);
+      }
+    }, 1000);
+  }
+
+  function renderBoard() {
+    elements.gameBoard.innerHTML = '';
+    elements.gameBoard.style.gridTemplateColumns = `repeat(${gameState.cols}, 1fr)`;
+    gameState.board.forEach(card => {
+      const div = document.createElement('div');
+      div.className = `card ${card.flipped || card.matched ? 'flipped' : ''}`;
+      div.dataset.id = card.id;
+      div.textContent = card.flipped || card.matched ? card.emoji : '';
+      elements.gameBoard.appendChild(div);
+    });
+  }
+
+  function onCardClick(e) {
+    const cardEl = e.target.closest('.card');
+    if (!cardEl || cardEl.classList.contains('flipped')) return;
+
+    const cardId = +cardEl.dataset.id;
+    const card = gameState.board.find(c => c.id === cardId);
+    if (card.matched || card.flipped || gameState.flipped.length === 2) return;
+
+    card.flipped = true;
+    gameState.flipped.push(card);
+    gameState.moves++;
+    renderBoard();
+    updateGameInfo();
+
+    if (gameState.flipped.length === 2) {
+      const [a, b] = gameState.flipped;
+      if (a.emoji === b.emoji) {
+        a.matched = b.matched = true;
+        gameState.scores[gameState.currentPlayer]++;
+        gameState.flipped = [];
+        if (gameState.board.every(c => c.matched)) endGame(true);
+      } else {
+        setTimeout(() => {
+          a.flipped = b.flipped = false;
+          gameState.flipped = [];
+          gameState.currentPlayer = 1 - gameState.currentPlayer;
+          renderBoard();
+        }, 1000);
+      }
+    }
+  }
+
+  function endGame(completed) {
+    clearInterval(gameState.timer);
+    const [p1, p2] = gameState.players;
+    const [s1, s2] = gameState.scores;
+    const result = completed ?
+            (s1 > s2 ? `${p1} переміг!` : s2 > s1 ? `${p2} переміг!` : 'Нічия!') :
+            'Час вийшов!';
+    elements.winner.textContent = result;
+  }
+
+  function resetSettings() {
+    elements.player1.value = '';
+    elements.player2.value = '';
+    elements.boardSize.value = '4x4';
+    elements.difficulty.value = 'easy';
+    elements.rounds.value = 1;
+  }
+
+  elements.startBtn.addEventListener('click', initGame);
+  elements.resetSettings.addEventListener('click', resetSettings);
+  elements.restartBtn.addEventListener('click', initGame);
+  elements.gameBoard.addEventListener('click', onCardClick);
+</script>
+</body>
+</html>
